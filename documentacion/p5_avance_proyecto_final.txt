@@ -1,0 +1,304 @@
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║          AVANCE DEL PROYECTO FINAL — FUNDAMENTOS DE PROGRAMACIÓN            ║
+║                       MAESTRÍA EN AUTOMATIZACIÓN                            ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+AUTOR      : Santiago Cano
+PROGRAMA   : Maestría en Automatización
+ASIGNATURA : Fundamentos de Programación Científica
+FECHA      : Marzo 2026
+DATASET    : ESS-DIVE doi:10.15485/1969563 — ERT East River Watershed
+
+════════════════════════════════════════════════════════════════════════════════
+1. TÍTULO TENTATIVO DEL PROYECTO
+════════════════════════════════════════════════════════════════════════════════
+
+"Diseño y desarrollo de un sistema portátil de bajo costo basado en
+mediciones de resistividad eléctrica para la estimación espacial y en
+tiempo real del potencial mátrico del suelo mediante modelos de
+aprendizaje automático."
+
+════════════════════════════════════════════════════════════════════════════════
+2. PROBLEMA Y CONTEXTO
+════════════════════════════════════════════════════════════════════════════════
+
+El potencial mátrico del suelo (ψ, en kPa o MPa) es la variable
+hidráulica que determina la fuerza con que el suelo retiene el agua
+disponible para las plantas y la recarga de acuíferos. Su medición
+directa requiere tensiómetros, placas de presión o psicrómetros, que
+son equipos costosos (>USD 500 por nodo), frágiles, de mantenimiento
+intensivo y que entregan únicamente información puntual.
+
+En contextos agrícolas, de gestión hídrica y de monitoreo ambiental
+en países de ingresos medios, la falta de redes densas de sensores de
+potencial mátrico impide una gestión eficiente del riego, genera
+sobreconsumo hídrico de hasta el 40% (FAO, 2023) y limita la
+detección temprana de riesgo de deslizamiento en taludes.
+
+La resistividad eléctrica del suelo (ρ, Ohm·m) es una propiedad
+físicamente relacionada con el contenido volumétrico de agua y, por
+extensión, con el potencial mátrico a través de la curva de retención
+hídrica (van Genuchten, 1980). Equipos ERT comerciales como el MPT-DAS1
+cuestan entre USD 20,000 y USD 80,000. Existe una brecha tecnológica
+no resuelta: no hay sistemas portátiles de bajo costo (<USD 300) que
+integren medición de resistividad, procesamiento embebido y estimación
+del potencial mátrico mediante aprendizaje automático en tiempo real.
+
+Este proyecto propone cerrar esa brecha mediante el diseño de hardware
+(electrónica de cuatro electrodos con microcontrolador ESP32),
+adquisición de datos del dataset ESS-DIVE como referencia de validación,
+y entrenamiento de modelos ML para la estimación de ψ a partir de ρ.
+
+════════════════════════════════════════════════════════════════════════════════
+3. OBJETIVO GENERAL Y OBJETIVOS ESPECÍFICOS
+════════════════════════════════════════════════════════════════════════════════
+
+OBJETIVO GENERAL:
+  Desarrollar un sistema portátil de bajo costo basado en mediciones de
+  resistividad eléctrica del suelo para estimar espacialmente y en tiempo
+  real el potencial mátrico mediante modelos de aprendizaje automático,
+  validado con el dataset ERT del East River Watershed (2016–2018).
+
+OBJETIVOS ESPECÍFICOS:
+  OE1. Caracterizar la relación cuantitativa entre resistividad eléctrica
+       aparente (ρ) y contenido volumétrico de agua (θ) utilizando el
+       dataset ESS-DIVE como fuente de datos de referencia.
+
+  OE2. Construir y comparar modelos de aprendizaje automático (Random
+       Forest, XGBoost y Red Neuronal MLP) para la estimación del
+       potencial mátrico a partir de ρ, temperatura del suelo y
+       profundidad del electrodo como variables predictoras.
+
+  OE3. Diseñar el prototipo electrónico del sistema de medición portátil
+       con microcontrolador ESP32, electrodos de acero inoxidable y
+       transmisión inalámbrica de datos vía LoRa/WiFi.
+
+  OE4. Validar el sistema prototipo comparando las estimaciones de ψ
+       obtenidas con las mediciones de referencia del dataset ERT y
+       con tensiómetros de campo en al menos dos tipos de suelo.
+
+  OE5. Implementar una interfaz de visualización en tiempo real que
+       muestre la distribución espacial del potencial mátrico y emita
+       alertas de riesgo hídrico o de saturación crítica.
+
+════════════════════════════════════════════════════════════════════════════════
+4. VARIABLES Y DATOS DISPONIBLES
+════════════════════════════════════════════════════════════════════════════════
+
+VARIABLES DE ENTRADA (predictores del modelo ML):
+  ┌─────────────────────────────────────┬──────────────┬───────────────────┐
+  │ Variable                            │ Unidad       │ Fuente            │
+  ├─────────────────────────────────────┼──────────────┼───────────────────┤
+  │ Resistividad aparente (ρ)           │ Ohm·m        │ Dataset ESS-DIVE  │
+  │ Temperatura del suelo (T)           │ °C           │ Dataset ESS-DIVE  │
+  │ Profundidad del electrodo (z)       │ m            │ Dataset ESS-DIVE  │
+  │ Posición a lo largo del transecto   │ m            │ Dataset ESS-DIVE  │
+  │ Día del año (estacionalidad)        │ día juliano  │ Derivado          │
+  └─────────────────────────────────────┴──────────────┴───────────────────┘
+
+VARIABLE DE SALIDA (objetivo):
+  ┌─────────────────────────────────────┬──────────────┬───────────────────┐
+  │ Variable                            │ Unidad       │ Fuente            │
+  ├─────────────────────────────────────┼──────────────┼───────────────────┤
+  │ Potencial mátrico del suelo (ψ)     │ kPa          │ Estimado vía      │
+  │                                     │              │ curva van Genuchten│
+  └─────────────────────────────────────┴──────────────┴───────────────────┘
+
+DATASET PRINCIPAL:
+  • Dafflon et al. (2025), ESS-DIVE doi:10.15485/1969563
+  • 326 archivos CSV de adquisición ERT (2016–2018)
+  • 128 electrodos, espaciado 1.25 m, transecto de 160 m
+  • Cobertura temporal: Nov 2016 – Ago 2018 (diaria)
+
+DATOS COMPLEMENTARIOS:
+  • Datos de temperatura y humedad del suelo del mismo sitio
+    (East River Watershed CZO, LBNL Watershed Function SFA)
+  • Datos de textura y propiedades hidráulicas del suelo del sitio
+    (disponibles en ESS-DIVE para el mismo proyecto)
+
+════════════════════════════════════════════════════════════════════════════════
+5. METODOLOGÍA PRELIMINAR
+════════════════════════════════════════════════════════════════════════════════
+
+FASE 1 — Adquisición y preprocesamiento de datos (Semanas 1–3)
+  1.1  Descarga y consolidación de los 326 archivos CSV del dataset ERT
+  1.2  Limpieza de datos: filtrado de valores inválidos (ρ < 1 Ohm·m,
+       ρ > 5000 Ohm·m), interpolación de datos faltantes
+  1.3  Generación de la variable objetivo ψ mediante la ecuación de
+       van Genuchten (1980) aplicada al contenido θ derivado de ρ
+       usando la Ley de Archie modificada (Meng et al., 2024)
+
+FASE 2 — Análisis exploratorio e ingeniería de características (Semanas 4–5)
+  2.1  Análisis estadístico descriptivo y distribución de ρ por período
+  2.2  Cálculo de correlaciones entre ρ, T, z y ψ estimado
+  2.3  Creación de variables derivadas: gradiente temporal de ρ,
+       ventana móvil de 7 días, índice estacional
+  2.4  Normalización y codificación de variables categóricas
+
+FASE 3 — Modelado con aprendizaje automático (Semanas 6–8)
+  3.1  Partición de datos: 70% entrenamiento, 15% validación, 15% prueba
+  3.2  Entrenamiento de tres modelos:
+       • Random Forest Regressor (scikit-learn)
+       • XGBoost Regressor
+       • Red neuronal MLP (TensorFlow/Keras, 3 capas ocultas)
+  3.3  Optimización de hiperparámetros con GridSearchCV / Optuna
+  3.4  Evaluación con métricas: RMSE, MAE, R², residuos
+
+FASE 4 — Diseño del prototipo hardware (Semanas 9–11)
+  4.1  Diseño del circuito de inyección de corriente AC (4 electrodos)
+       basado en microcontrolador ESP32 y AD5933 (impedance analyzer)
+  4.2  Selección de materiales: electrodos de acero inoxidable 316L,
+       PCB impresa, carcasa de PLA biodegradable
+  4.3  Estimación de costo: objetivo < USD 150 por unidad
+  4.4  Programación del firmware en MicroPython para adquisición,
+       procesamiento embebido y transmisión LoRa
+
+FASE 5 — Validación y publicación (Semanas 12–14)
+  5.1  Comparación de estimaciones del prototipo vs. dataset de referencia
+  5.2  Análisis de incertidumbre con simulación de Montecarlo
+  5.3  Redacción del informe final y preparación de publicación
+
+════════════════════════════════════════════════════════════════════════════════
+6. REVISIÓN DE LITERATURA
+════════════════════════════════════════════════════════════════════════════════
+
+MATRIZ DE REVISIÓN — 8 referencias recientes y pertinentes
+
+┌────┬──────────────────────────────┬──────┬─────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ #  │ Referencia                   │ Año  │ Relevancia para el proyecto                                                                             │
+├────┼──────────────────────────────┼──────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ R1 │ Meng et al.                  │ 2024 │ Propone un método ML (optimizado) para cuantificar la relación entre resistividad ERT y contenido de    │
+│    │ Journal of Hydrology         │      │ agua del suelo usando datos in-situ de alta resolución. Es la referencia técnica central del OE2.       │
+│    │ doi:10.1016/j.jhydrol.       │      │ Demuestra que ML supera a los modelos físicos clásicos (Archie, Waxman-Smits) en suelos arcillosos.    │
+│    │ 2024.131908                  │      │                                                                                                         │
+├────┼──────────────────────────────┼──────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ R2 │ Zeng et al.                  │ 2025 │ Desarrolla un modelo teórico cuantitativo para convertir perfiles ERT en distribuciones de contenido   │
+│    │ Geosciences (MDPI)           │      │ de agua en loess no saturado. Valida con datos de campo (error < 9% en capas < 20 m). Fundamenta       │
+│    │ doi:10.3390/geosciences      │      │ la Ley de Archie modificada utilizada en la Fase 1 de la metodología propuesta.                        │
+│    │ 15080302                     │      │                                                                                                         │
+├────┼──────────────────────────────┼──────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ R3 │ Dafflon et al.               │ 2025 │ Dataset principal del proyecto. Contiene 326 adquisiciones ERT diarias (2016–2018) con 128 electrodos  │
+│    │ ESS-DIVE Repository          │      │ en el East River Watershed, Colorado. Proporciona los datos de resistividad aparente usados en todos   │
+│    │ doi:10.15485/1969563         │      │ los puntos del taller y como base de entrenamiento del modelo ML.                                       │
+├────┼──────────────────────────────┼──────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ R4 │ Ciampi et al.                │ 2024 │ Introduce un procedimiento de clustering estadístico de datos ERT para caracterizar la heterogeneidad  │
+│    │ Engineering Geology          │      │ litológica y las firmas geoeléctricas del subsuelo. Relevante para la Fase 2 (ingeniería de            │
+│    │ doi:10.1016/j.enggeo.        │      │ características) y para interpretar la variabilidad espacial del potencial mátrico estimado.           │
+│    │ 2024.107589                  │      │                                                                                                         │
+├────┼──────────────────────────────┼──────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ R5 │ Amabile et al.               │ 2023 │ Evalúa ERT como método de monitoreo continuo del contenido hídrico en diques fluviales. Demuestra la  │
+│    │ Vadose Zone Journal          │      │ viabilidad de ERT para monitoreo de largo plazo y propone protocolos de calibración campo-laboratorio  │
+│    │ doi:10.1002/vzj2.20290       │      │ directamente aplicables al OE4 (validación del prototipo en campo).                                    │
+├────┼──────────────────────────────┼──────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ R6 │ Tso et al.                   │ 2023 │ Evaluación semi-automatizada de estimación de humedad con ERT y FDEM combinados con Random Forest.     │
+│    │ Vadose Zone Journal          │      │ Demuestra que la combinación de datos ERT invertidos con ML alcanza R²>0.85 en predicción de humedad. │
+│    │ doi:10.1002/vzj2.20246       │      │ Fundamenta la elección de Random Forest como uno de los modelos del OE2.                               │
+├────┼──────────────────────────────┼──────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ R7 │ Blanchy et al.               │ 2023 │ Evaluación multiscala de la precisión de predicción de contenido de agua con ERT en depósitos de      │
+│    │ Scientific Reports           │      │ relaves. Primer estudio en evaluar el efecto de escala en ERT-VWC. Directamente relevante para el      │
+│    │ doi:10.1038/s41598-023-      │      │ análisis de incertidumbre espacial planteado en la Fase 5 de la metodología.                           │
+│    │ 48100-w                      │      │                                                                                                         │
+├────┼──────────────────────────────┼──────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ R8 │ Soil Water Status Mon.       │ 2024 │ Sistema de monitoreo proximal de bajo costo con múltiples nodos para temperatura del aire, temperatura │
+│    │ System — PMC                 │      │ del suelo y humedad del suelo. Valida la arquitectura IoT de bajo costo propuesta en el OE3, incluyendo│
+│    │ PMC11679594                  │      │ el uso de ESP32 y protocolos de transmisión LoRa/WiFi para aplicaciones agrícolas y ambientales.       │
+└────┴──────────────────────────────┴──────┴─────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+REFERENCIAS COMPLETAS EN FORMATO APA:
+
+[R1] Meng, F., Wang, J., Zhao, Y., & Chen, Z. (2024). Quantification of soil
+     water content by machine learning using enhanced high-resolution ERT.
+     Journal of Hydrology, 645, 131908.
+     https://doi.org/10.1016/j.jhydrol.2024.131908
+
+[R2] Zeng, H., Zhang, Q., Du, C., Liu, J., & Li, Y. (2025). Quantitative
+     relationship between electrical resistivity and water content in
+     unsaturated loess: Theoretical model and ERT imaging verification.
+     Geosciences, 15(8), 302. https://doi.org/10.3390/geosciences15080302
+
+[R3] Dafflon, B., Leger, E., & Peterson, J. (2025). Electrical Resistivity
+     Tomography data from 2016 to 2018 at the Lower Montane site in the
+     East River Watershed, Colorado. ESS-DIVE.
+     https://doi.org/10.15485/1969563
+
+[R4] Ciampi, P., Giannini, L. M., Cassiani, G., Esposito, C., & Papini, M. P.
+     (2024). Geo-constrained clustering of resistivity data revealing the
+     heterogeneous lithological architectures and the distinctive geoelectrical
+     signature of shallow deposits. Engineering Geology, 337, 107589.
+     https://doi.org/10.1016/j.enggeo.2024.107589
+
+[R5] Amabile, A., Pozzato, A., Benes, V., & Tarantino, A. (2023). Improving
+     evapotranspiration computation with electrical resistivity tomography.
+     Vadose Zone Journal, 22(6), e20290.
+     https://doi.org/10.1002/vzj2.20290
+
+[R6] Tso, C. H. M., Kuras, O., Wilkinson, P. B., Uhlemann, S., Chambers,
+     J. E., Meldrum, P. I., ... & Binley, A. (2023). Field evaluation of
+     semi-automated moisture estimation from inverted ERT and FDEM data.
+     Vadose Zone Journal, 22(1), e20246.
+     https://doi.org/10.1002/vzj2.20246
+
+[R7] Blanchy, G., McLachlan, P., Binley, A., & Censini, M. (2023). A
+     multiscale accuracy assessment of moisture content predictions from
+     electrical resistivity tomography. Scientific Reports, 13, 20927.
+     https://doi.org/10.1038/s41598-023-48100-w
+
+[R8] Navarro-Hellín, H., Martínez-del-Rincon, J., Domingo-Miguel, R.,
+     Soto-Valles, F., & Torres-Sánchez, R. (2024). Soil water status
+     monitoring system with proximal low-cost sensors for precision
+     agriculture. PMC / Sensors, 24(24), 7952.
+     https://www.ncbi.nlm.nih.gov/pmc/articles/PMC11679594/
+
+════════════════════════════════════════════════════════════════════════════════
+7. RESULTADOS ESPERADOS Y APORTE DEL PROYECTO
+════════════════════════════════════════════════════════════════════════════════
+
+RESULTADOS ESPERADOS:
+
+  RE1. Modelo ML validado con R² > 0.80 para la estimación del potencial
+       mátrico del suelo a partir de mediciones de resistividad eléctrica,
+       temperatura y profundidad, utilizando el dataset ERT del East River
+       Watershed como referencia de entrenamiento y validación.
+
+  RE2. Prototipo funcional del sistema portátil de bajo costo (< USD 150)
+       con capacidad de medición de resistividad en cuatro configuraciones
+       de electrodo (Wenner, Schlumberger, dipolo-dipolo, gradient),
+       procesamiento embebido y transmisión inalámbrica de datos.
+
+  RE3. Dataset de calibración propio generado en al menos dos tipos de
+       suelo (arcilloso y franco-arenoso) con mediciones simultáneas de
+       resistividad (prototipo) y potencial mátrico (tensiómetro de
+       referencia).
+
+  RE4. Interfaz de visualización en tiempo real (Python/Dash o Node-RED)
+       que muestre la distribución espacial del potencial mátrico con
+       sistema de semáforo de alerta (verde/amarillo/rojo).
+
+  RE5. Análisis comparativo del costo-efectividad del sistema propuesto
+       frente a tensiómetros comerciales y equipos ERT convencionales.
+
+APORTE DEL PROYECTO:
+
+  El principal aporte es la integración de tres tecnologías en un único
+  sistema accesible: (1) hardware de bajo costo para medición de
+  resistividad eléctrica, (2) modelos de aprendizaje automático entrenados
+  con datos geofísicos reales de alta calidad, y (3) visualización
+  en tiempo real del potencial mátrico con alertas operativas.
+
+  Este sistema podría reducir el costo de monitoreo hídrico del suelo de
+  USD 500–2,000 por nodo (tensiómetros comerciales) a menos de USD 150,
+  democratizando el acceso a tecnología de precisión para agricultores
+  y gestores de recursos hídricos en economías emergentes.
+
+  Desde la perspectiva académica, el proyecto aporta:
+  • Una función de calibración ρ→ψ específica para suelos montañosos
+    en climas con ciclos de congelamiento-deshielo.
+  • Un protocolo reproducible y abierto (código + hardware) para
+    sistemas de monitoreo ERT distribuido de bajo costo.
+  • Validación de modelos ML en el contexto de geofísica aplicada
+    a hidrología del subsuelo con un dataset público de referencia.
+
+════════════════════════════════════════════════════════════════════════════════
+  Documento generado: 2026-03-27 20:51:36
+════════════════════════════════════════════════════════════════════════════════
