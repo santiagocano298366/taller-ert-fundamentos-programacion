@@ -1,0 +1,8 @@
+metrica,lista_python,numpy,coinciden
+minimo_ohm_m,78.6,78.6,SI
+maximo_ohm_m,4900.3,4900.3,SI
+promedio_ohm_m,1624.45,1624.45,SI
+mediana_ohm_m,N/A,515.55,N/A
+desv_std_ohm_m,N/A,1813.22,N/A
+percentil_25,N/A,207.0,N/A
+percentil_75,N/A,3250.18,N/A

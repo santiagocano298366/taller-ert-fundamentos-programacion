@@ -1,0 +1,20 @@
+REPORTE DE ALERTAS — PUNTO 1
+Generado: 2026-03-27 21:08:43
+=======================================================
+
+Total registros     : 10
+Registros válidos   : 7
+Registros inválidos : 3
+Total alertas       : 5
+
+ALERTAS:
+  [2016-12-01] ALERTA AZUL → 4800.0 Ohm·m
+  [2017-01-10] DATO INVALIDO → 5200.0 Ohm·m
+  [2017-05-05] DATO INVALIDO → -15.0 Ohm·m
+  [2017-07-14] ALERTA ROJA → 88.0 Ohm·m
+  [2018-04-18] DATO INVALIDO → 0.0 Ohm·m
+
+ESTADÍSTICAS (registros válidos):
+  Mínimo  : 88.0 Ohm·m
+  Máximo  : 4800.0 Ohm·m
+  Promedio: 956.36 Ohm·m

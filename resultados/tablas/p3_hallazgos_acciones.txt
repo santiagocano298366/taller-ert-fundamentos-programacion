@@ -1,0 +1,20 @@
+HALLAZGOS Y ACCIONES — PUNTO 3
+Generado: 2026-03-27 21:08:43
+============================================================
+
+[H1] Cobertura critica Invierno 2017 (KPI1=79.78%)
+  Descripcion: 18 dias sin datos por fallas energia solar. Cobertura en zona AMARILLA.
+  Accion     : Instalar bateria de respaldo. Protocolo mantenimiento en octubre.
+
+[H2] Estabilidad señal baja en Otoño e Invierno (KPI2<50%)
+  Descripcion: Menos del 50% de registros en rango normal. Predominan valores de suelo congelado.
+  Accion     : Ajustar umbrales KPI2 estacionalmente. En invierno ampliar rango hasta 5000 Ohm·m.
+
+[H3] Tasa anomalias alta Invierno 2017 (KPI3=20.22%)
+  Descripcion: El 20.22% de dias presentaron datos fuera del rango fisico valido.
+  Accion     : Reemplazar sistema MPT antes de cada invierno. Alertas si tasa>10% semanal.
+
+[H4] Mejora sostenida Primavera-Verano 2017 (todos VERDE)
+  Descripcion: Cobertura 96.72%, anomalias 3.28%, cambios bruscos 2.48%. Sistema optimo.
+  Accion     : Usar periodo C como linea base de referencia para KPIs objetivo.
+

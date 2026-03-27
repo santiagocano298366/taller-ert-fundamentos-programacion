@@ -1,0 +1,11 @@
+#,fecha,resistividad_ohm_m,estado,condicion
+1,2016-11-02,312.5,NORMAL,Condicion operativa estable
+2,2016-11-15,289.0,NORMAL,Condicion operativa estable
+3,2016-12-01,4800.0,ALERTA_AZUL,Suelo posiblemente helado
+4,2017-01-10,5200.0,INVALIDO,Error de sensor / Sin señal
+5,2017-03-20,410.0,NORMAL,Condicion operativa estable
+6,2017-05-05,-15.0,INVALIDO,Error de sensor / Sin señal
+7,2017-07-14,88.0,ALERTA_ROJA,Suelo saturado / Riesgo hidrico
+8,2017-09-30,175.0,NORMAL,Condicion operativa estable
+9,2017-11-22,620.0,NORMAL,Condicion operativa estable
+10,2018-04-18,0.0,INVALIDO,Error de sensor / Sin señal

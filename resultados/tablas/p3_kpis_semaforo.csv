@@ -1,0 +1,4 @@
+periodo,codigo,rango,total_dias,registros_validos,media_ohm_m,mediana_ohm_m,std_ohm_m,kpi1_cobertura_%,kpi1_semaforo,kpi2_estabilidad_%,kpi2_semaforo,kpi3_anomalias_%,kpi3_semaforo,kpi4_cambio_brusco_%,kpi4_semaforo,diagnostico_general
+Otono 2016,A,Nov-Dic 2016,61,57,2471.3,2100.6,1974.52,93.44,VERDE,40.0,ROJO,6.56,AMARILLO,13.33,AMARILLO,EN_RIESGO
+Invierno 2017,B,Ene-Mar 2017,89,71,1401.22,410.8,1733.27,79.78,AMARILLO,46.67,ROJO,20.22,ROJO,15.91,AMARILLO,CRITICO
+Primavera-Verano 2017,C,Abr-Ago 2017,122,118,310.25,325.7,87.95,96.72,VERDE,100.0,VERDE,3.28,VERDE,2.48,VERDE,OPERATIVO

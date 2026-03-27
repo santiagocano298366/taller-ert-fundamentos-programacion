@@ -1,0 +1,17 @@
+parametro,valor,descripcion
+n_simulaciones,10000,Total de simulaciones ejecutadas
+dias_periodo,90,Duración del período de invierno
+meta_cobertura_%,85.0,Meta operativa mínima
+max_dias_perdidos,13,Máx. días perdidos para cumplir meta
+lambda_energia,3.2,Tasa fallas energía solar (Poisson)
+lambda_mpt,1.5,Tasa fallas sistema MPT (Poisson)
+n_exitosos,4492,Simulaciones que cumplen la meta
+prob_exito_%,44.92,Probabilidad de cumplir la meta
+prob_fracaso_%,55.08,Probabilidad de NO cumplir
+cobertura_media_%,84.33,Cobertura promedio simulada
+cobertura_mediana_%,84.44,Mediana de coberturas
+cobertura_std_%,4.14,Desviación estándar coberturas
+percentil_5_%,77.78,Peor escenario 5% (P5)
+percentil_95_%,91.11,Mejor escenario 5% (P95)
+dias_perdidos_prom,14.1,Promedio de días perdidos por período
+semilla_aleatoria,42,Semilla para reproducibilidad
