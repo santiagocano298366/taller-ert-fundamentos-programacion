@@ -1,0 +1,387 @@
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║     CONSULTA METODOLÓGICA — DESPLIEGUE DE SOFTWARE EN AWS                   ║
+║     Sistema ERT Monitor: Monitoreo Geofísico de Resistividad del Suelo      ║
+║     Maestría en Automatización — Fundamentos de Programación Científica     ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+AUTOR   : Santiago Cano
+FECHA   : Marzo 2026
+PROYECTO: Sistema portátil de bajo costo para estimación del potencial
+          mátrico del suelo mediante resistividad eléctrica y ML
+
+════════════════════════════════════════════════════════════════════════════════
+1. DESCRIPCIÓN DEL TIPO DE APLICACIÓN A DESPLEGAR
+════════════════════════════════════════════════════════════════════════════════
+
+La solución desarrollada en este taller es una aplicación de analítica
+científica con tres componentes técnicos diferenciados que deben desplegarse
+de forma integrada en la nube:
+
+  COMPONENTE 1 — Motor de análisis Python (backend científico)
+  ┌──────────────────────────────────────────────────────────────┐
+  │ • Procesamiento de datos ERT (CSV del dataset ESS-DIVE)      │
+  │ • Validación y clasificación de resistividad (Puntos 1–2)    │
+  │ • Cálculo de KPIs con semáforo (Punto 3)                    │
+  │ • Simulación de Montecarlo — 10,000 iteraciones (Punto 4)   │
+  │ • Modelo ML para estimación de potencial mátrico (Punto 5)  │
+  │ Tipo: API REST con FastAPI / Flask                           │
+  │ Lenguaje: Python 3.11                                        │
+  │ Dependencias: NumPy, pandas, scikit-learn, matplotlib        │
+  └──────────────────────────────────────────────────────────────┘
+
+  COMPONENTE 2 — Dashboard web interactivo (frontend)
+  ┌──────────────────────────────────────────────────────────────┐
+  │ • Interfaz React + TypeScript del prototipo Lovable          │
+  │ • Visualización de KPIs, gráficos y tabla de datos          │
+  │ • Módulo de simulación Montecarlo interactivo               │
+  │ Tipo: Single Page Application (SPA) estática                │
+  │ Build output: archivos HTML/CSS/JS estáticos                │
+  └──────────────────────────────────────────────────────────────┘
+
+  COMPONENTE 3 — Pipeline de datos (ingesta y almacenamiento)
+  ┌──────────────────────────────────────────────────────────────┐
+  │ • Carga periódica de archivos CSV del dataset ERT           │
+  │ • Almacenamiento de resultados procesados                   │
+  │ • Logs de alertas y registros históricos de KPIs            │
+  │ Tipo: Pipeline de datos con almacenamiento en nube          │
+  └──────────────────────────────────────────────────────────────┘
+
+CLASIFICACIÓN DE LA APLICACIÓN:
+  • Tipo de carga     : Variable (picos en simulación Montecarlo)
+  • Usuarios esperados: 5–50 simultáneos (contexto académico/investigación)
+  • Disponibilidad    : 95% aceptable (no es sistema crítico 24/7)
+  • Datos sensibles   : No (dataset científico público)
+  • Presupuesto       : Bajo (perfil académico) → priorizar capa gratuita AWS
+
+════════════════════════════════════════════════════════════════════════════════
+2. ARQUITECTURA GENERAL DE DESPLIEGUE EN AWS
+════════════════════════════════════════════════════════════════════════════════
+
+La arquitectura propuesta sigue el patrón de tres capas (presentación,
+lógica de negocio, datos) sobre infraestructura serverless y administrada
+de AWS, priorizando bajo costo y simplicidad operativa.
+
+  DIAGRAMA DE ARQUITECTURA:
+
+  ┌─────────────────────────────────────────────────────────────────────┐
+  │                        USUARIO / NAVEGADOR                          │
+  └─────────────────────────────┬───────────────────────────────────────┘
+                                │ HTTPS
+  ┌─────────────────────────────▼───────────────────────────────────────┐
+  │                    CAPA DE PRESENTACIÓN                             │
+  │  ┌─────────────────────────────────────────────────────────────┐   │
+  │  │  Amazon S3 (Static Website)  +  Amazon CloudFront (CDN)     │   │
+  │  │  Sirve el dashboard React (HTML/CSS/JS)                     │   │
+  │  │  CloudFront: caché global, HTTPS automático, baja latencia  │   │
+  │  └─────────────────────────────────────────────────────────────┘   │
+  └─────────────────────────────┬───────────────────────────────────────┘
+                                │ API calls (JSON)
+  ┌─────────────────────────────▼───────────────────────────────────────┐
+  │                    CAPA DE LÓGICA DE NEGOCIO                        │
+  │  ┌─────────────────────────────────────────────────────────────┐   │
+  │  │  Amazon API Gateway  →  AWS Lambda (Python 3.11)            │   │
+  │  │                                                             │   │
+  │  │  Funciones Lambda:                                         │   │
+  │  │  • lambda_validacion()    → Punto 1: validar registros     │   │
+  │  │  • lambda_indicadores()   → Punto 3: calcular KPIs         │   │
+  │  │  • lambda_montecarlo()    → Punto 4: simulación 10k iter.  │   │
+  │  │  • lambda_prediccion_ml() → Punto 5: estimar ψ con ML      │   │
+  │  └─────────────────────────────────────────────────────────────┘   │
+  └──────────────┬──────────────────────────┬──────────────────────────┘
+                 │ Leer/escribir datos       │ Guardar resultados
+  ┌──────────────▼──────────────┐  ┌────────▼─────────────────────────┐
+  │      CAPA DE DATOS          │  │     CAPA DE ALMACENAMIENTO        │
+  │  ┌──────────────────────┐   │  │  ┌────────────────────────────┐  │
+  │  │  Amazon S3 (Data)    │   │  │  │  Amazon DynamoDB           │  │
+  │  │  • CSV ERT raw data  │   │  │  │  • KPIs calculados         │  │
+  │  │  • Modelos ML (.pkl) │   │  │  │  • Historial de alertas    │  │
+  │  │  • Resultados JSON   │   │  │  │  • Registros de simulación │  │
+  │  └──────────────────────┘   │  │  └────────────────────────────┘  │
+  └─────────────────────────────┘  └──────────────────────────────────┘
+                                                    │
+  ┌─────────────────────────────────────────────────▼──────────────────┐
+  │                    CAPA DE MONITOREO Y CI/CD                        │
+  │  ┌──────────────────┐  ┌──────────────────┐  ┌───────────────────┐ │
+  │  │  Amazon          │  │  AWS CloudWatch  │  │  AWS CodePipeline │ │
+  │  │  CloudWatch Logs │  │  Dashboards      │  │  + CodeBuild      │ │
+  │  │  (errores API)   │  │  (métricas uso)  │  │  (CI/CD automát.) │ │
+  │  └──────────────────┘  └──────────────────┘  └───────────────────┘ │
+  └────────────────────────────────────────────────────────────────────┘
+
+════════════════════════════════════════════════════════════════════════════════
+3. SERVICIOS AWS SELECCIONADOS Y JUSTIFICACIÓN
+════════════════════════════════════════════════════════════════════════════════
+
+┌─────────────────────┬──────────────────────────────┬────────────────────────┐
+│ Servicio AWS        │ Uso en el proyecto           │ Justificación          │
+├─────────────────────┼──────────────────────────────┼────────────────────────┤
+│ Amazon S3           │ • Almacenar archivos CSV ERT │ Almacenamiento de bajo │
+│ (Simple Storage     │ • Servir el frontend React   │ costo (< USD 1/mes     │
+│  Service)           │ • Guardar modelos ML (.pkl)  │ para este volumen).    │
+│                     │ • Resultados JSON y gráficos │ Alta durabilidad       │
+│                     │                              │ (99.999999999%). Capa  │
+│                     │                              │ gratuita: 5 GB.        │
+├─────────────────────┼──────────────────────────────┼────────────────────────┤
+│ Amazon CloudFront   │ • CDN para el dashboard      │ Reduce latencia global │
+│ (Content Delivery   │ • HTTPS automático           │ sirviendo el frontend  │
+│  Network)           │ • Caché de activos estáticos │ desde edge locations.  │
+│                     │                              │ Capa gratuita: 1 TB    │
+│                     │                              │ de transferencia/mes.  │
+├─────────────────────┼──────────────────────────────┼────────────────────────┤
+│ AWS Lambda          │ • Ejecutar los 4 módulos     │ Serverless: pago solo  │
+│ (Functions as a     │   Python del taller como     │ por ejecución (no hay  │
+│  Service)           │   funciones independientes   │ servidor idle). Capa   │
+│                     │ • Escala automáticamente     │ gratuita: 1M requests  │
+│                     │   con la demanda             │ y 400,000 GB-seg/mes.  │
+│                     │ • Sin gestión de servidores  │ Ideal para cargas      │
+│                     │                              │ académicas intermiten. │
+├─────────────────────┼──────────────────────────────┼────────────────────────┤
+│ Amazon API Gateway  │ • Exponer las funciones      │ Crea endpoints REST    │
+│ (REST API)          │   Lambda como endpoints HTTP │ seguros con HTTPS y    │
+│                     │ • Manejo de autenticación    │ control de acceso.     │
+│                     │ • Rate limiting              │ Capa gratuita: 1M      │
+│                     │                              │ llamadas API/mes.      │
+├─────────────────────┼──────────────────────────────┼────────────────────────┤
+│ Amazon DynamoDB     │ • Tabla "kpi_resultados"     │ Base de datos NoSQL    │
+│ (NoSQL Database)    │ • Tabla "alertas_historial"  │ serverless. Sin gestión│
+│                     │ • Tabla "simulaciones_mc"    │ de esquema rígido,     │
+│                     │                              │ ideal para datos JSON  │
+│                     │                              │ de KPIs variables.     │
+│                     │                              │ Capa gratuita: 25 GB.  │
+├─────────────────────┼──────────────────────────────┼────────────────────────┤
+│ AWS CloudWatch      │ • Logs de errores Lambda     │ Monitoreo centralizado │
+│ (Monitoring)        │ • Métricas de uso de API     │ nativo de AWS. Alerta  │
+│                     │ • Alarmas por umbrales       │ por email si Lambda    │
+│                     │ • Dashboard operativo        │ falla o excede tiempo  │
+│                     │                              │ de respuesta.          │
+├─────────────────────┼──────────────────────────────┼────────────────────────┤
+│ AWS CodePipeline    │ • CI/CD automático desde     │ Automatiza el flujo    │
+│ + AWS CodeBuild     │   GitHub al despliegue       │ completo: cada push a  │
+│ (CI/CD)             │ • Build del frontend React   │ GitHub dispara build,  │
+│                     │ • Empaquetado de Lambdas     │ pruebas y despliegue   │
+│                     │ • Despliegue automático      │ sin intervención manual│
+├─────────────────────┼──────────────────────────────┼────────────────────────┤
+│ AWS IAM             │ • Roles para cada Lambda     │ Principio de mínimo    │
+│ (Identity and       │ • Políticas de acceso a S3   │ privilegio: cada       │
+│  Access Management) │   y DynamoDB                 │ componente solo accede │
+│                     │ • Credenciales del pipeline  │ a lo estrictamente     │
+│                     │                              │ necesario.             │
+└─────────────────────┴──────────────────────────────┴────────────────────────┘
+
+════════════════════════════════════════════════════════════════════════════════
+4. SECUENCIA METODOLÓGICA DE DESPLIEGUE
+════════════════════════════════════════════════════════════════════════════════
+
+  FASE 1 — DESARROLLO (Local / Google Colab)
+  ──────────────────────────────────────────
+  Herramientas: Python, VS Code, Git, Google Colab
+
+  Acciones:
+  [1.1] Desarrollar y probar los 4 módulos Python del taller
+        en Google Colab con el dataset ERT local.
+  [1.2] Refactorizar cada punto en funciones reutilizables:
+        validar_registros(), calcular_kpis(), simular_montecarlo(),
+        predecir_potencial_matrico()
+  [1.3] Crear requirements.txt con las dependencias exactas:
+        numpy==1.26.0, pandas==2.1.0, scikit-learn==1.3.0
+  [1.4] Versionar todo el código en GitHub (repositorio ya creado).
+
+  FASE 2 — PRUEBAS (Testing local)
+  ─────────────────────────────────
+  Herramientas: pytest, unittest
+
+  Acciones:
+  [2.1] Escribir pruebas unitarias para cada función Python:
+        test_validar_registros(): verificar detección de valores inválidos
+        test_calcular_kpis(): verificar umbrales de semáforo
+        test_montecarlo(): verificar que 10,000 simulaciones corren sin error
+  [2.2] Verificar que todas las pruebas pasan: pytest tests/ -v
+  [2.3] Probar el frontend React localmente: npm run build
+  [2.4] Simular las llamadas API entre frontend y funciones Python.
+
+  FASE 3 — EMPAQUETADO (Preparar para Lambda)
+  ────────────────────────────────────────────
+  Herramientas: AWS CLI, Docker (opcional), zip
+
+  Acciones:
+  [3.1] Crear el paquete de despliegue Lambda para cada función:
+        mkdir lambda_package
+        pip install -r requirements.txt -t lambda_package/
+        cp modulos_ert.py lambda_package/
+        cd lambda_package && zip -r ../lambda_ert.zip .
+  [3.2] Construir el frontend React para producción:
+        npm run build  →  genera carpeta /dist con archivos estáticos
+  [3.3] Subir los CSV del dataset ERT a un bucket S3:
+        aws s3 sync datos/raw/ s3://ert-monitor-datos/raw/
+  [3.4] Subir el modelo ML serializado (.pkl) a S3:
+        aws s3 cp modelo_ml.pkl s3://ert-monitor-datos/modelos/
+
+  FASE 4 — DESPLIEGUE (Publicar en AWS)
+  ──────────────────────────────────────
+  Herramientas: AWS Console, AWS CLI, CloudFormation (opcional)
+
+  Acciones:
+  [4.1] Crear funciones Lambda desde la consola AWS:
+        • Subir lambda_ert.zip
+        • Runtime: Python 3.11
+        • Memory: 512 MB (suficiente para Montecarlo 10k iteraciones)
+        • Timeout: 30 segundos
+        • Variables de entorno: S3_BUCKET_NAME, DYNAMODB_TABLE
+
+  [4.2] Configurar API Gateway:
+        • Crear API REST nueva
+        • Crear recursos: /validar, /kpis, /montecarlo, /prediccion
+        • Vincular cada recurso a su función Lambda (método POST)
+        • Habilitar CORS para que el frontend React pueda llamar la API
+        • Desplegar la API en stage "produccion"
+
+  [4.3] Desplegar el frontend en S3 + CloudFront:
+        • Crear bucket S3 con Static Website Hosting habilitado
+        • Subir los archivos de /dist:
+          aws s3 sync dist/ s3://ert-monitor-frontend/ --delete
+        • Crear distribución CloudFront apuntando al bucket S3
+        • Configurar certificado HTTPS con AWS Certificate Manager
+
+  [4.4] Crear tablas DynamoDB:
+        • Tabla "ert_kpi_resultados"  → clave: periodo_id (String)
+        • Tabla "ert_alertas"         → clave: alerta_id (String)
+        • Tabla "ert_simulaciones"    → clave: sim_id (String)
+
+  FASE 5 — MONITOREO (Operación continua)
+  ────────────────────────────────────────
+  Herramientas: AWS CloudWatch, SNS (Simple Notification Service)
+
+  Acciones:
+  [5.1] Configurar CloudWatch Logs para cada Lambda:
+        • Retención de logs: 30 días
+        • Filtros de métricas para errores (ERROR, Exception)
+  [5.2] Crear alarmas CloudWatch:
+        • Alarma 1: Lambda errors > 5 en 5 min → notificar por email (SNS)
+        • Alarma 2: Lambda duration > 25 seg   → posible timeout
+        • Alarma 3: API Gateway 4xx > 10/min   → problema en el cliente
+  [5.3] Dashboard CloudWatch con:
+        • Invocaciones Lambda por función
+        • Latencia promedio de API Gateway
+        • Errores por hora
+
+  FASE 6 — ITERACIÓN (Mejora continua)
+  ──────────────────────────────────────
+  Herramientas: GitHub + AWS CodePipeline + AWS CodeBuild
+
+  Acciones:
+  [6.1] Configurar CodePipeline con 3 etapas:
+        Source  → GitHub (rama main)
+        Build   → CodeBuild (ejecuta pytest + npm run build)
+        Deploy  → Lambda update + S3 sync automático
+  [6.2] Cada push a GitHub dispara automáticamente:
+        pruebas → empaquetado → despliegue → sin intervención manual
+  [6.3] Usar ramas de Git para nuevas funcionalidades:
+        feature/modelo-xgboost → PR → merge → deploy automático
+
+════════════════════════════════════════════════════════════════════════════════
+5. VENTAJAS, RIESGOS Y LIMITACIONES
+════════════════════════════════════════════════════════════════════════════════
+
+  VENTAJAS
+  ─────────
+  [V1] COSTO REDUCIDO — Arquitectura serverless (Lambda + S3 + DynamoDB)
+       opera completamente dentro de la capa gratuita de AWS para el
+       volumen académico esperado (< 1M requests/mes, < 5 GB datos).
+       Costo estimado: USD 0–5/mes en el primer año.
+
+  [V2] ESCALABILIDAD AUTOMÁTICA — Lambda escala de 0 a miles de
+       ejecuciones simultáneas sin configuración. Si el sistema ERT
+       evoluciona a 100 sensores en campo, la arquitectura no cambia.
+
+  [V3] SIN GESTIÓN DE SERVIDORES — No hay que parchear SO, gestionar
+       actualizaciones de seguridad ni monitorear uptime de VMs.
+       El equipo se enfoca en el código científico, no en infraestructura.
+
+  [V4] INTEGRACIÓN NATIVA — Todos los servicios (Lambda, S3, DynamoDB,
+       CloudWatch, CodePipeline) son nativos de AWS y se integran con
+       políticas IAM unificadas y sin configuración adicional.
+
+  [V5] REPRODUCIBILIDAD CIENTÍFICA — Los datos del dataset ESS-DIVE
+       almacenados en S3 son versionables e inmutables, garantizando
+       reproducibilidad de los resultados del taller.
+
+  RIESGOS
+  ────────
+  [R1] COLD START DE LAMBDA — Las funciones Lambda inactivas tardan
+       300–500 ms en "despertar" (cold start). Para la simulación
+       Montecarlo de 10,000 iteraciones, esto es aceptable, pero
+       puede percibirse como lentitud en la primera llamada.
+       Mitigación: configurar Provisioned Concurrency para funciones
+       críticas o usar Lambda SnapStart.
+
+  [R2] TIEMPO LÍMITE DE LAMBDA — El timeout máximo es 15 minutos.
+       La simulación Montecarlo de 10,000 iteraciones tarda ~2 seg
+       en Colab; en Lambda con 512 MB debería ser similar. Sin embargo,
+       si el modelo ML crece en complejidad, podría superar el límite.
+       Mitigación: usar AWS Step Functions para dividir simulaciones largas.
+
+  [R3] VENDOR LOCK-IN — La arquitectura está acoplada a servicios
+       propietarios de AWS (Lambda, DynamoDB, API Gateway). Migrar
+       a otro proveedor (GCP, Azure) requeriría refactorización.
+       Mitigación: containerizar las funciones Python con Docker para
+       portabilidad si fuera necesario.
+
+  [R4] SEGURIDAD DE CREDENCIALES — Las credenciales de AWS (Access Key,
+       Secret Key) no deben incluirse en el código ni en GitHub.
+       Mitigación: usar AWS IAM Roles para Lambda (sin credenciales
+       explícitas) y AWS Secrets Manager para variables sensibles.
+
+  LIMITACIONES
+  ─────────────
+  [L1] LÍMITE DE PAQUETE LAMBDA — El paquete de despliegue tiene límite
+       de 250 MB (zip descomprimido). NumPy + pandas + scikit-learn
+       suman ~180 MB, dejando poco margen si se agregan TensorFlow o
+       PyTorch para modelos más complejos.
+       Solución: usar Lambda Layers o migrar a Amazon ECS con contenedor
+       Docker si el modelo ML supera este límite.
+
+  [L2] NO ES TIEMPO REAL — La arquitectura propuesta es request-response
+       (el usuario solicita y espera la respuesta). Para monitoreo ERT
+       continuo con actualizaciones automáticas cada minuto, se requeriría
+       agregar AWS IoT Core + Amazon Kinesis Data Streams.
+       Esta evolución está fuera del alcance actual pero es la ruta
+       natural hacia la versión productiva del sistema portátil (Punto 5).
+
+  [L3] COMPLEJIDAD INICIAL — Configurar API Gateway + Lambda + S3 +
+       CloudFront + DynamoDB + IAM desde cero tiene una curva de
+       aprendizaje de 2–4 semanas para un desarrollador sin experiencia
+       en AWS. Alternativa más simple para prototipo inicial: usar
+       AWS Elastic Beanstalk (despliega la app Flask completa en un
+       comando) o AWS Amplify (despliega el frontend React en 5 minutos).
+
+════════════════════════════════════════════════════════════════════════════════
+6. ESTIMACIÓN DE COSTO MENSUAL (PERFIL ACADÉMICO)
+════════════════════════════════════════════════════════════════════════════════
+
+  Supuestos: 500 requests/día, 30 días = 15,000 requests/mes
+             Simulación Montecarlo: 2 seg × 128 MB = 0.256 GB-seg/req
+
+  ┌──────────────────────────┬──────────────┬──────────────┬────────────────┐
+  │ Servicio                 │ Uso/mes      │ Capa gratuita│ Costo estimado │
+  ├──────────────────────────┼──────────────┼──────────────┼────────────────┤
+  │ AWS Lambda               │ 15,000 req   │ 1M req GRATIS│ USD 0.00       │
+  │ Amazon API Gateway       │ 15,000 calls │ 1M calls/mes │ USD 0.00       │
+  │ Amazon S3 (datos)        │ 2 GB         │ 5 GB GRATIS  │ USD 0.00       │
+  │ Amazon S3 (frontend)     │ 50 MB        │ incluido     │ USD 0.00       │
+  │ Amazon CloudFront        │ 15 GB transf.│ 1 TB GRATIS  │ USD 0.00       │
+  │ Amazon DynamoDB          │ 1 GB storage │ 25 GB GRATIS │ USD 0.00       │
+  │ AWS CloudWatch Logs      │ 1 GB logs    │ 5 GB GRATIS  │ USD 0.00       │
+  │ AWS CodePipeline         │ 1 pipeline   │ 1 pipeline   │ USD 0.00       │
+  ├──────────────────────────┼──────────────┼──────────────┼────────────────┤
+  │ TOTAL ESTIMADO           │              │              │ USD 0.00/mes   │
+  │ (dentro de capa gratuita)│              │              │ (primer año)   │
+  └──────────────────────────┴──────────────┴──────────────┴────────────────┘
+
+  Nota: AWS ofrece 12 meses de capa gratuita para nuevas cuentas.
+  Para el contexto académico de este proyecto, el despliegue completo
+  puede mantenerse en USD 0 durante el primer año de uso.
+
+════════════════════════════════════════════════════════════════════════════════
+  Documento generado: 2026-03-27 21:04:22
+════════════════════════════════════════════════════════════════════════════════
